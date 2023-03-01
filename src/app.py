@@ -40,9 +40,7 @@ def sitemap():
 def user():
     if request.method == "GET":
         users = User.query.all()
-        print(users)
         results = [user.serialize() for user in users]
-        print(results)
         response_body = {"message": "ok",
                         "results": results,
                         "Total_records": len(results)}
@@ -130,6 +128,51 @@ def get_planet(planet_id):
                          "records": 1,
                          "results": results}
         return response_body, 200
+
+@app.route('/favorites/people', methods=['GET'])
+def get_fav():
+    current_user = 1
+    cuser = User.query.filter_by(id=current_user).first()
+    content = cuser.favorite_people
+    result = [favorite.name for favorite in content]
+    response_body = {"message": "ok",
+                     "results": result}
+    return response_body, 200
+
+@app.route('/favorites/people/<int:people_id>', methods=['POST', 'DELETE'])
+def mod_people_fav(people_id):
+    if request.method == "POST":
+        current_user = 1
+        cuser = User.query.filter_by(id=current_user).first() # Usuario que está haciendo cosas
+        fav_people = People.query.filter_by(id=people_id).first() # Personaje que vamos a añadir
+        if fav_people in cuser.favorite_people:
+            response_body = {"message": "Error. Already exists"}
+            return response_body, 400
+        else:
+            cuser.favorite_people.append(fav_people)
+            db.session.commit()
+            response_body = {"message": "ok",
+                            "added": fav_people.name}
+            return response_body, 200
+    elif request.method == "DELETE":
+        current_user = 1
+        cuser = User.query.filter_by(id=current_user).first() # Usuario que está haciendo cosas
+        fav_people = People.query.filter_by(id=people_id).first() # Personaje que vamos a eliminar
+        if fav_people in cuser.favorite_people:
+            cuser.favorite_people.remove(fav_people)
+            db.session.commit()
+            response_body = {"message": "ok",
+                            "deleted": fav_people.name}
+            return response_body, 200
+        else:
+            response_body = {"message": "Error. Record not found."}
+            return response_body, 404
+    else:
+        response_body = {"message": "Error. Method not allowed."}
+        return response_body, 400
+
+
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
